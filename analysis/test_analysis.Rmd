@@ -1,0 +1,126 @@
+---
+title: "P-matrix / PCA"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+In this notebook I am creating code to run the analysis described in Felman (1995) to obtain valence and arousal focus scores. 
+
+I am using a subset of existing data (taken from EMG study). 
+
+The steps fopr extracting the values are as follows. 
+
+  1. Get p-matrix between emotion terms for each participant 
+  2. Apply a principle axis factor analysis to each p-matrix
+  3. Apply tucker congruence coefficient to previously derived factors/Decide on valence and arousal factors
+  4. The percentage of variance explained for the valenc and arousal factors give an index of valence and arousal focus. 
+
+```{r message = FALSE}
+library(tidyverse)
+library(psych)
+library(FactoMineR)
+```
+
+First I will read in the test data
+
+```{r message = FALSE, warning = FALSE}
+test_data <- read_csv(here::here("data", "test_data.csv")) %>% 
+  tidyr::separate(col = trialunique, 
+                  into = c("id", "trial", "rep"),
+                  sep = "_") %>% 
+  mutate(trial_ref = glue::glue("{trial}_{rep}"), 
+         id = as.numeric(id)) %>% 
+  drop_na(id) %>% 
+  janitor::clean_names()
+
+visdat::vis_dat(test_data)
+```
+<br>
+## Extracting the two factors 
+
+I want to extract the factor structure for each participant. So I will created a nested dataframe that contains their emotion scores 
+
+```{r nesteddataframe}
+
+emotion_select <- test_data %>% 
+  select(id, tas, depression, active_rating:tender_rating) 
+
+emotion_select
+
+nested_ratings <- emotion_select %>% 
+  nest(ratings = c(active_rating:tender_rating))
+
+nested_ratings
+
+valence_accounted_fun <- function(df){
+  psych::fa(r = df, nfactor = 2, rotate = "none", fm = "pa")$Vaccounted[2, 1]
+}
+
+possibly_valence <- possibly(valence_accounted_fun, otherwise = NA)
+
+arousal_accounted_fun <- function(df){
+  psych::fa(r = df, nfactor = 2, rotate = "none", fm = "pa")$Vaccounted[2, 2]
+}
+
+possibly_arousal <- possibly(arousal_accounted_fun, otherwise = NA)
+
+
+
+affect_fa <- nested_ratings %>% 
+  mutate(valence_accounted = as.numeric(map(ratings, possibly_valence)), 
+         arousal_accounted = as.numeric(map(ratings, possibly_arousal)), 
+         valence_pct = valence_accounted * 100, 
+         arousal_pct = arousal_accounted * 100)
+
+visdat::vis_dat(affect_fa)
+
+```
+
+
+
+So now that i have the function working I want to esimate the regression coefficents. But first I would like 
+to check normality
+```{r}
+
+par(mfrow = c(2,2))
+
+for (i in c("tas", "depression", "arousal_pct", "valence_pct")){ 
+  tmp_dat <- affect_fa[[i]]
+  tmp <- hist(tmp_dat,
+              main = paste("Histogram of", i)) 
+  print(tmp)
+}
+
+par(mfrow = c(1,1))
+
+
+```
+
+```{r}
+a_a_lm <- lm(arousal_pct~tas, 
+   data = affect_fa) 
+a_d_lm <- lm(arousal_pct~depression, 
+   data = affect_fa) 
+a_a_d_lm <- lm(arousal_pct~tas+depression, 
+   data = affect_fa)
+
+sjPlot::tab_model(a_a_lm, a_d_lm, a_a_d_lm, 
+                  show.ci = TRœUE) 
+
+v_a_lm <- lm(valence_pct~tas, 
+   data = affect_fa) 
+v_d_lm <- lm(valence_pct~depression, 
+   data = affect_fa) 
+v_a_d_lm <- lm(valence_pct~tas+depression, 
+   data = affect_fa) 
+
+
+```
+
+
+
