@@ -19,43 +19,55 @@ library(ggforce)
 
 ```{r echo = TRUE}
 
-media_eval <- read_csv(here::here("pre_launch", 
-                                  "stimulus_selection", 
-                                  "annotations", 
-                                  "static_annotations.csv"))
+media_eval <- read_csv(here::here(
+  "pre_launch",
+  "stimulus_selection",
+  "annotations",
+  "static_annotations.csv"
+))
 
 tertile_valence <- quantile(media_eval$mean_valence, c(.333, .666))
 tertile_arousal <- quantile(media_eval$mean_arousal, c(.333, .666))
 
 
-media_eval_filter <- media_eval %>% 
-  filter(!between(mean_valence, tertile_valence[1], tertile_valence[2]) & 
-           !between(mean_arousal, tertile_arousal[1], tertile_arousal[2]))
+media_eval_filter <- media_eval %>%
+  filter(!between(mean_valence, tertile_valence[1], tertile_valence[2]) &
+    !between(mean_arousal, tertile_arousal[1], tertile_arousal[2]))
 
-ggplot2::ggplot(media_eval_filter, 
-                aes(x = mean_valence, 
-                    y = mean_arousal)) + 
-  geom_point() + 
-  theme_classic() 
-
+ggplot2::ggplot(
+  media_eval_filter,
+  aes(
+    x = mean_valence,
+    y = mean_arousal
+  )
+) +
+  geom_point() +
+  theme_classic()
 ```
 
 This gives me the sample of appropriate songs. Now I want to sample down but statify based on genre. 
 
 ```{r}
-candidate_songs <- read_csv(here::here("pre_launch", 
-                                  "stimulus_selection", 
-                                  "annotations", 
-                                  "songs_info.csv")) %>% 
-  inner_join(media_eval_filter) %>%  
-  mutate(level = case_when(mean_arousal < tertile_arousal[1] & mean_valence < tertile_valence[1] ~ "Low Valence / Low Arousal", 
-                           mean_arousal < tertile_arousal[1] & mean_valence > tertile_valence[2] ~ "High Valence / Low Arousal", 
-                           mean_arousal > tertile_arousal[2] & mean_valence > tertile_valence[2] ~ "High Valence / High Arousal", 
-                           mean_arousal > tertile_arousal[2] & mean_valence < tertile_valence[1] ~ "Low Valence / High Arousal"))
+candidate_songs <- read_csv(here::here(
+  "pre_launch",
+  "stimulus_selection",
+  "annotations",
+  "songs_info.csv"
+)) %>%
+  inner_join(media_eval_filter) %>%
+  mutate(level = case_when(
+    mean_arousal < tertile_arousal[1] &
+      mean_valence < tertile_valence[1] ~ "Low Valence / Low Arousal",
+    mean_arousal < tertile_arousal[1] &
+      mean_valence > tertile_valence[2] ~ "High Valence / Low Arousal",
+    mean_arousal > tertile_arousal[2] &
+      mean_valence > tertile_valence[2] ~ "High Valence / High Arousal",
+    mean_arousal > tertile_arousal[2] &
+      mean_valence < tertile_valence[1] ~ "Low Valence / High Arousal"
+  ))
 
-table(candidate_songs$level, candidate_songs$Genre) %>% 
+table(candidate_songs$level, candidate_songs$Genre) %>%
   knitr::kable(caption = "Candidate songs by Genre")
-
 ```
 
 So based on this I need to down stratify based on this criteria:   
@@ -72,76 +84,122 @@ So based on this I need to down stratify based on this criteria:
 
 set.seed(1234)
 
-classical <- candidate_songs %>% 
-  filter(Genre == "Classical") %>% 
-  group_by(level) %>% 
+classical <- candidate_songs %>%
+  filter(Genre == "Classical") %>%
+  group_by(level) %>%
   dplyr::sample_n(1)
 
-country <- candidate_songs %>% 
-  filter(Genre == "Country") %>% 
-  group_by(level) %>% 
+country <- candidate_songs %>%
+  filter(Genre == "Country") %>%
+  group_by(level) %>%
   dplyr::sample_n(2)
 
-folk <- candidate_songs %>% 
-  filter(Genre == "Folk") %>% 
-  group_by(level) %>% 
+folk <- candidate_songs %>%
+  filter(Genre == "Folk") %>%
+  group_by(level) %>%
   dplyr::sample_n(2)
 
-jazz <- candidate_songs %>% 
-  filter(Genre == "Jazz") %>% 
-  group_by(level) %>% 
+jazz <- candidate_songs %>%
+  filter(Genre == "Jazz") %>%
+  group_by(level) %>%
   dplyr::sample_n(1)
 
-pop <- candidate_songs %>% 
-  filter(Genre == "Pop") %>% 
-  group_by(level) %>% 
+pop <- candidate_songs %>%
+  filter(Genre == "Pop") %>%
+  group_by(level) %>%
   dplyr::sample_n(1)
 
-rock <- candidate_songs %>% 
-  filter(Genre == "Rock") %>% 
-  group_by(level) %>% 
+rock <- candidate_songs %>%
+  filter(Genre == "Rock") %>%
+  group_by(level) %>%
   dplyr::sample_n(1)
 
 
-selected_songs <- bind_rows(classical, 
-                            folk, 
-                            country, 
-                            pop, 
-                            rock,
-                            jazz) %>% 
+selected_songs <- bind_rows(
+  classical,
+  folk,
+  country,
+  pop,
+  rock,
+  jazz
+) %>%
   ungroup()
 
-table(selected_songs$level, selected_songs$Genre) %>% 
-  knitr::kable(caption = "Selected songs by Genre") 
+table(selected_songs$level, selected_songs$Genre) %>%
+  knitr::kable(caption = "Selected songs by Genre")
 
-selected_songs %>% 
-  ggplot2::ggplot(aes(x = mean_valence, 
-              y = mean_arousal, 
-              color = Genre, 
-              fill = level, 
-              label = paste("V =", selected_songs$mean_valence, "A =", selected_songs$mean_arousal))) +
+selected_songs %>%
+  ggplot2::ggplot(aes(
+    x = mean_valence,
+    y = mean_arousal,
+    color = Genre,
+    fill = level,
+    label = paste("V =", selected_songs$mean_valence, "A =", selected_songs$mean_arousal)
+  )) +
   ggplot2::geom_point() +
-  ggplot2::theme_classic() 
-
+  ggplot2::theme_classic()
 ```
 
 
 Now I am going to read in the ratings over time 
 ```{r}
 
-valence_over_time <- read_csv(here::here("pre_launch", 
-                                  "stimulus_selection", 
-                                  "annotations", 
-                                  "valence_cont_average.csv")) %>% 
-  inner_join(selected_songs)
+valence_over_time <- read_csv(here::here(
+  "pre_launch",
+  "stimulus_selection",
+  "annotations",
+  "valence_cont_average.csv"
+)) %>%
+  inner_join(selected_songs) %>% 
+  pivot_longer(cols = contains("sample"), 
+               names_to = "time", 
+               values_to = "valence") %>% 
+  mutate(time = str_remove(time, "sample_"), 
+         time = str_remove(time, "ms"),
+         song_id = as.factor(song_id), 
+         time = as.numeric(time)) %>% 
+  select(level, 
+         song_id,
+         time, 
+         valence)
+
+valence_plot <- ggplot2::ggplot(valence_over_time, 
+                aes(x = time, 
+                    y = valence, 
+                    group = song_id)) + 
+  ggplot2::geom_line(aes(color = level)) + 
+  ggplot2::theme_classic() + 
+  ggplot2::theme(legend.position = "none") + 
+  ylim(c(-1, 1))
+
+arousal_over_time <- read_csv(here::here(
+  "pre_launch",
+  "stimulus_selection",
+  "annotations",
+  "arousal_cont_average.csv"
+)) %>%
+  inner_join(selected_songs) %>% 
+  pivot_longer(cols = contains("sample"), 
+               names_to = "time", 
+               values_to = "arousal") %>% 
+  mutate(time = str_remove(time, "sample_"), 
+         time = str_remove(time, "ms"),
+         song_id = as.factor(song_id), 
+         time = as.numeric(time)) %>% 
+  select(level, 
+         song_id,
+         time, 
+         arousal)
+
+arousal_plot <- ggplot2::ggplot(arousal_over_time, 
+                aes(x = time, 
+                    y = arousal, 
+                    group = song_id)) + 
+  ggplot2::geom_line(aes(color = level)) + 
+  ggplot2::theme_classic() + 
+  ggplot2::theme(legend.position = "none") + 
+  ylim(c(-1, 1))
+
 
 
 ```
-
-
-
-
-
-
-
-
