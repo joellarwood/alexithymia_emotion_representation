@@ -14,6 +14,7 @@ I am taking stimulus from the MediaEval dataset. This data is pre annotated in t
 library(tidyverse)
 library(here)
 library(ggforce)
+library(cowplot)
 ```
 
 
@@ -150,27 +151,47 @@ valence_over_time <- read_csv(here::here(
   "annotations",
   "valence_cont_average.csv"
 )) %>%
-  inner_join(selected_songs) %>% 
-  pivot_longer(cols = contains("sample"), 
-               names_to = "time", 
-               values_to = "valence") %>% 
-  mutate(time = str_remove(time, "sample_"), 
-         time = str_remove(time, "ms"),
-         song_id = as.factor(song_id), 
-         time = as.numeric(time)) %>% 
-  select(level, 
-         song_id,
-         time, 
-         valence)
+  inner_join(selected_songs) %>%
+  pivot_longer(
+    cols = contains("sample"),
+    names_to = "time",
+    values_to = "valence"
+  ) %>%
+  mutate(
+    time = str_remove(time, "sample_"),
+    time = str_remove(time, "ms"),
+    song_id = as.factor(song_id),
+    time = as.numeric(time)
+    ) %>%
+  select(
+    level,
+    song_id,
+    time,
+    valence
+  )
 
-valence_plot <- ggplot2::ggplot(valence_over_time, 
-                aes(x = time, 
-                    y = valence, 
-                    group = song_id)) + 
-  ggplot2::geom_line(aes(color = level)) + 
-  ggplot2::theme_classic() + 
-  ggplot2::theme(legend.position = "none") + 
-  ylim(c(-1, 1))
+valence_plot <- ggplot2::ggplot(
+  valence_over_time,
+  aes(
+    x = time,
+    y = valence,
+    group = song_id
+  )
+) +
+  ggplot2::geom_line(aes(color = level)) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(legend.position = "none") +
+  ylim(c(-.75, .75)) +
+  ggplot2::scale_x_continuous(breaks = c(
+    15000,
+    20000,
+    25000,
+    30000,
+    35000,
+    40000,
+    45000
+  )) + 
+  ggrepel::geom_text_repel(label = glue::glue())
 
 arousal_over_time <- read_csv(here::here(
   "pre_launch",
@@ -178,28 +199,67 @@ arousal_over_time <- read_csv(here::here(
   "annotations",
   "arousal_cont_average.csv"
 )) %>%
-  inner_join(selected_songs) %>% 
-  pivot_longer(cols = contains("sample"), 
-               names_to = "time", 
-               values_to = "arousal") %>% 
-  mutate(time = str_remove(time, "sample_"), 
-         time = str_remove(time, "ms"),
-         song_id = as.factor(song_id), 
-         time = as.numeric(time)) %>% 
-  select(level, 
-         song_id,
-         time, 
-         arousal)
+  inner_join(selected_songs) %>%
+  pivot_longer(
+    cols = contains("sample"),
+    names_to = "time",
+    values_to = "arousal"
+  ) %>%
+  mutate(
+    time = str_remove(time, "sample_"),
+    time = str_remove(time, "ms"),
+    song_id = as.factor(song_id),
+    time = as.numeric(time)
+  ) %>%
+  select(
+    level,
+    song_id,
+    time,
+    arousal
+  )
 
-arousal_plot <- ggplot2::ggplot(arousal_over_time, 
-                aes(x = time, 
-                    y = arousal, 
-                    group = song_id)) + 
-  ggplot2::geom_line(aes(color = level)) + 
-  ggplot2::theme_classic() + 
-  ggplot2::theme(legend.position = "none") + 
-  ylim(c(-1, 1))
+arousal_plot <- ggplot2::ggplot(
+  arousal_over_time,
+  aes(
+    x = time,
+    y = arousal,
+    group = song_id
+  )
+) +
+  ggplot2::geom_line(aes(color = level)) +
+  ggplot2::theme_classic()  +
+  ggplot2::theme(legend.position = "bottom") +
+  ylim(c(-.75, .75)) +
+  ggplot2::scale_x_continuous(breaks = c(
+    15000,
+    20000,
+    25000,
+    30000,
+    35000,
+    40000,
+    45000
+  ))
 
+arousal_no_legend <- arousal_plot + 
+  ggplot2::theme(legend.position = "none")
 
+plots <- cowplot::plot_grid(valence_plot, 
+                   arousal_no_legend, 
+                   nrow = 2)
 
+legend <- cowplot::get_legend(arousal_plot)
+
+cowplot::plot_grid(plots, 
+                   legend, 
+                   nrow = 2, 
+                   rel_heights = c(4, .2
+                                   ))
 ```
+
+Finally I want two random 5 second snippets of each song. I will do this using an R script. with the starting point of each song being 5 seconds post a random time point between 15 and 40 seconds 
+
+```{r}
+print(selected_songs$file_name) 
+```
+
+
