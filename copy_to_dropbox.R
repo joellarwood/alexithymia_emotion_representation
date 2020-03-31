@@ -4,7 +4,7 @@
 
 git_repo <- here::here()
 
-dropbox <- "/Users/joellarwood/Dropbox/Joel PhD/Emotion Representation in Alexithymia/git_backup"
+dropbox <- "/Users/joellarwood/Dropbox/Joel PhD/emotion_representation_alexithymia/git_backup"
 
 file.symlink(from = git_repo, 
             to = dropbox)

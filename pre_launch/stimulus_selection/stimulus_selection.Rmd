@@ -41,7 +41,7 @@ ggplot2::ggplot(
     x = mean_valence,
     y = mean_arousal
   )
-) +
+) + 
   geom_point() +
   theme_classic()
 ```
@@ -134,9 +134,16 @@ selected_songs %>%
     x = mean_valence,
     y = mean_arousal,
     color = Genre,
-    fill = level,
+    shape = level,
     label = paste("V =", selected_songs$mean_valence, "A =", selected_songs$mean_arousal)
   )) +
+  ggplot2::geom_point() +
+  ylim(1, 9) +
+  xlim(1, 9) +
+  geom_vline(xintercept = tertile_valence[1]) +
+  geom_vline(xintercept = tertile_valence[2]) + 
+  geom_hline(yintercept = tertile_arousal[1]) +
+  geom_hline(yintercept =tertile_arousal[2]) +
   ggplot2::geom_point() +
   ggplot2::theme_classic()
 ```
