@@ -2,9 +2,11 @@
 ##                        Send to dropbox                       -
 ##---------------------------------------------------------------
 
-git_repo <- here::here()
+git_files <- list.files(here::here())
 
 dropbox <- "/Users/joellarwood/Dropbox/Joel PhD/emotion_representation_alexithymia/git_backup"
 
-file.symlink(from = git_repo, 
-            to = dropbox)
+file.copy(from = git_files, 
+             to = dropbox, 
+          overwrite= TRUE, 
+          recursive = TRUE )
