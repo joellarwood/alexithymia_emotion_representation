@@ -76,9 +76,15 @@ faces <- append(male_faces, female_faces)
 library(av)
 
 
-dest <- here::here(
+dest_faces <- here::here(
   "experiment", 
-  "face_judge"
+  "faces"
+)
+
+unlink(
+  paste0(
+    dest_faces, "/*"
+    )
 )
 
 
@@ -90,9 +96,9 @@ for(i in 1:36){
     ".mpeg", 
     ".mp4"
   ) 
-  tmp_out <- paste0(dest, "/", tmp_rename) #path to converted video
+  tmp_out <- paste0(dest_faces, "/", tmp_rename) #path to converted video
   av_encode_video(
     input = tmp_input, #imports from desktop
     output = tmp_out, # outputs to experiment file folder 
   )
-  
+}
